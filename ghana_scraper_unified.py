@@ -80,11 +80,91 @@ class GhanaRegulatoryScraperUnified:
             'port': 5432
         }
 
+    def _create_safetydb_tables(self, cursor):
+        """Create required tables in safetydb schema if they don't exist"""
+        try:
+            # Create countries table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS safetydb.countries (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    code VARCHAR(3) NOT NULL UNIQUE,
+                    name VARCHAR(100) NOT NULL UNIQUE,
+                    region VARCHAR(100),
+                    population BIGINT,
+                    gdp_per_capita NUMERIC(10,2),
+                    healthcare_index NUMERIC(5,2),
+                    regulatory_maturity VARCHAR(50) CHECK (regulatory_maturity IN ('developing','intermediate','advanced')),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create companies table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS safetydb.companies (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    name VARCHAR(255) NOT NULL,
+                    country_of_origin VARCHAR(100),
+                    address TEXT,
+                    beneficial_owners JSONB,
+                    risk_score INT CHECK (risk_score >= 0 AND risk_score <= 100),
+                    total_violations INT DEFAULT 0,
+                    logo_url VARCHAR(500),
+                    website VARCHAR(500),
+                    established_year INT,
+                    company_size VARCHAR(50) CHECK (company_size IN ('small','medium','large','multinational')),
+                    primary_products TEXT[],
+                    regulatory_status VARCHAR(100),
+                    last_inspection_date DATE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create regulatory_events table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS safetydb.regulatory_events (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    url VARCHAR(500) NOT NULL UNIQUE,
+                    event_type VARCHAR(50) CHECK (event_type IN ('Alert','Public Notice','Product Recall')),
+                    alert_date DATE,
+                    alert_name VARCHAR(255),
+                    all_text TEXT,
+                    notice_date DATE,
+                    notice_text TEXT,
+                    recall_date DATE,
+                    product_name VARCHAR(255),
+                    product_type VARCHAR(100),
+                    manufacturer_id UUID REFERENCES safetydb.companies(id),
+                    recalling_firm_id UUID REFERENCES safetydb.companies(id),
+                    batches VARCHAR(255),
+                    manufacturing_date DATE,
+                    expiry_date DATE,
+                    source_url TEXT,
+                    pdf_path TEXT,
+                    reason_for_action TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create indexes
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_safetydb_companies_name ON safetydb.companies(name)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_safetydb_events_type ON safetydb.regulatory_events(event_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_safetydb_events_date ON safetydb.regulatory_events(alert_date, notice_date, recall_date)")
+            
+            cursor.connection.commit()
+            logger.info("✅ SafetyDB tables created successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Error creating safetydb tables: {e}")
+            cursor.connection.rollback()
+            raise
+
     def _ensure_ghana_country(self, cursor):
-        """Ensure 'GH' (Ghana) exists in countries table."""
-        cursor.execute("SELECT code FROM countries WHERE code = %s", ('GH',))
+        """Ensure 'GH' (Ghana) exists in safetydb.countries table."""
+        cursor.execute("SELECT code FROM safetydb.countries WHERE code = %s", ('GH',))
         if not cursor.fetchone():
-            cursor.execute("INSERT INTO countries (code, name, who_maturity_level) VALUES (%s, %s, %s)", ('GH', 'Ghana', 3))
+            cursor.execute("INSERT INTO safetydb.countries (code, name, regulatory_maturity) VALUES (%s, %s, %s)", ('GH', 'Ghana', 'intermediate'))
 
     def _get_or_create_company(self, cursor, name, country_code, company_type):
         """Get company ID by name, or create if not exists. Prevents duplicates by name."""
@@ -93,26 +173,16 @@ class GhanaRegulatoryScraperUnified:
         name = name.strip()
         try:
             # First check if company exists by name only (to prevent duplicates)
-            cursor.execute("SELECT id, type FROM companies WHERE name = %s", (name,))
+            cursor.execute("SELECT id, company_size FROM safetydb.companies WHERE name = %s", (name,))
             result = cursor.fetchone()
             if result:
                 existing_id = result['id'] if isinstance(result, dict) else result[0]
-                existing_type = result['type'] if isinstance(result, dict) else result[1]
-                
-                # If existing type is different, update it to the more specific one
-                if existing_type != company_type:
-                    # Prefer 'Manufacturer' over 'Reselling Firm' if there's a conflict
-                    if company_type == 'Manufacturer' and existing_type == 'Reselling Firm':
-                        cursor.execute("UPDATE companies SET type = %s WHERE id = %s", (company_type, existing_id))
-                        cursor.connection.commit()
-                        logger.debug(f"Updated company type for {name}: {existing_type} -> {company_type}")
-                
                 return existing_id
             
             # Create new company if it doesn't exist
             cursor.execute(
-                "INSERT INTO companies (name, country_code, type) VALUES (%s, %s, %s) RETURNING id",
-                (name, country_code, company_type)
+                "INSERT INTO safetydb.companies (name, country_of_origin, company_size) VALUES (%s, %s, %s) RETURNING id",
+                (name, country_code, 'medium')
             )
             cursor.connection.commit()
             new_id = cursor.fetchone()
@@ -1175,7 +1245,8 @@ class GhanaRegulatoryScraperUnified:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             logger.info("✅ Database connection established successfully")
             
-            # 2. Ensure required data exists
+            # 2. Create tables and ensure required data exists
+            self._create_safetydb_tables(cursor)
             self._ensure_ghana_country(cursor)
             
             # 3. Process each category
@@ -1308,7 +1379,7 @@ class GhanaRegulatoryScraperUnified:
                         insert_data['url'] = unique_url
                         
                         insert_query = """
-                        INSERT INTO regulatory_events (
+                        INSERT INTO safetydb.regulatory_events (
                             url, event_type, alert_date, alert_name, all_text, notice_date, notice_text, 
                             recall_date, product_name, product_type, manufacturer_id, recalling_firm_id,
                             batches, manufacturing_date, expiry_date, source_url, pdf_path, reason_for_action
