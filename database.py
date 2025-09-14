@@ -15,9 +15,9 @@ class DatabaseManager:
     
     def __init__(self):
         self.host = os.getenv('DB_HOST', 'localhost')
-        self.database = os.getenv('DB_NAME', 'African_Country')
-        self.user = os.getenv('DB_USER', 'divyanshsingh')
-        self.password = os.getenv('DB_PASSWORD', '')
+        self.database = os.getenv('DB_NAME', 'safetyiq')
+        self.user = os.getenv('DB_USER', 'sanatanupmanyu')
+        self.password = os.getenv('DB_PASSWORD', 'ksDq2jazKmxxzv.VxXbkwR6Uxz')
         self.port = os.getenv('DB_PORT', '5432')
         
     @contextmanager

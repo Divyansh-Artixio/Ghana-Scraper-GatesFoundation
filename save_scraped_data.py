@@ -17,8 +17,9 @@ def save_scraped_data():
     
     db_config = {
         'host': 'localhost',
-        'database': 'African_Country',
-        'user': 'divyanshsingh',
+        'database': 'safetyiq',
+        'user': 'sanatanupmanyu',
+        'password': 'ksDq2jazKmxxzv.VxXbkwR6Uxz',
         'port': 5432
     }
     

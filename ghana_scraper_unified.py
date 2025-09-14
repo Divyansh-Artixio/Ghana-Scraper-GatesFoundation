@@ -75,8 +75,9 @@ class GhanaRegulatoryScraperUnified:
         # Database connection parameters
         self.db_config = {
             'host': 'localhost',
-            'database': 'African_Country',
-            'user': 'divyanshsingh',
+            'database': 'safetyiq',
+            'user': 'sanatanupmanyu',
+            'password': 'ksDq2jazKmxxzv.VxXbkwR6Uxz',
             'port': 5432
         }
 
@@ -142,6 +143,14 @@ class GhanaRegulatoryScraperUnified:
                     source_url TEXT,
                     pdf_path TEXT,
                     reason_for_action TEXT,
+                    -- Additional detailed fields from PDF extraction
+                    detailed_content TEXT,
+                    manufacturing_firm TEXT,
+                    importing_firm TEXT,
+                    distributing_firm TEXT,
+                    product_description TEXT,
+                    hazard_description TEXT,
+                    corrective_action TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -1327,6 +1336,14 @@ class GhanaRegulatoryScraperUnified:
                             'pdf_path': (item.get('pdf_path') or '')[:500],
                             'reason_for_action': (item.get('reason_for_recall') or 
                                                 item.get('reason_for_action') or '')[:1000],
+                            # Additional detailed fields from PDF extraction
+                            'detailed_content': (item.get('detailed_content') or '')[:5000],
+                            'manufacturing_firm': (item.get('manufacturing_firm') or '')[:500],
+                            'importing_firm': (item.get('importing_firm') or '')[:500],
+                            'distributing_firm': (item.get('distributing_firm') or '')[:500],
+                            'product_description': (item.get('product_description') or '')[:1000],
+                            'hazard_description': (item.get('hazard_description') or '')[:1000],
+                            'corrective_action': (item.get('corrective_action') or '')[:1000],
                         }
                         
                         # Handle recall-specific data
@@ -1387,12 +1404,16 @@ class GhanaRegulatoryScraperUnified:
                         INSERT INTO safetydb.regulatory_events (
                             url, event_type, alert_date, alert_name, all_text, notice_date, notice_text, 
                             recall_date, product_name, product_type, manufacturer_id, recalling_firm_id,
-                            batches, manufacturing_date, expiry_date, source_url, pdf_path, reason_for_action
+                            batches, manufacturing_date, expiry_date, source_url, pdf_path, reason_for_action,
+                            detailed_content, manufacturing_firm, importing_firm, distributing_firm,
+                            product_description, hazard_description, corrective_action
                         ) VALUES (
                             %(url)s, %(event_type)s, %(alert_date)s, %(alert_name)s, %(all_text)s, %(notice_date)s, 
                             %(notice_text)s, %(recall_date)s, %(product_name)s, %(product_type)s, 
                             %(manufacturer_id)s, %(recalling_firm_id)s, %(batches)s, %(manufacturing_date)s, 
-                            %(expiry_date)s, %(source_url)s, %(pdf_path)s, %(reason_for_action)s
+                            %(expiry_date)s, %(source_url)s, %(pdf_path)s, %(reason_for_action)s,
+                            %(detailed_content)s, %(manufacturing_firm)s, %(importing_firm)s, %(distributing_firm)s,
+                            %(product_description)s, %(hazard_description)s, %(corrective_action)s
                         ) RETURNING id
                         """
                         
@@ -1689,4 +1710,4 @@ if __name__ == "__main__":
     
     print(f"\n🎉 SCRAPING COMPLETE!")
     print(f"📊 Total recalls processed: {len(results['recalls'])}")
-    print(f"💾 All data saved to African_Country database")
+    print(f"💾 All data saved to safetyiq database")

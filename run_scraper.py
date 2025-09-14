@@ -25,7 +25,7 @@ def main():
     print("📋 Scraping: Product Recalls")
     print("⚠️ Scraping: Product Alerts") 
     print("📢 Scraping: Public Notices")
-    print("💾 Saving to: African_Country Database")
+    print("💾 Saving to: safetyiq Database")
     print("=" * 50)
     
     start_time = datetime.now()
@@ -48,7 +48,7 @@ def main():
         print(f"📁 Total items: {total_items}")
         print(f"⏱️ Duration: {duration}")
         print(f"🗂️ Files saved to: ./output/")
-        print(f"🗄️ Database: African_Country (Ghana focus)")
+        print(f"🗄️ Database: safetyiq (Ghana focus)")
         print("=" * 50)
 
         return 0

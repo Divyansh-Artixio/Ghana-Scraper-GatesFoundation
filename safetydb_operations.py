@@ -18,8 +18,9 @@ class SafetyDBOperations:
     def __init__(self):
         self.db_config = {
             'host': 'localhost',
-            'database': 'African_Country',
-            'user': 'divyanshsingh',
+            'database': 'safetyiq',
+            'user': 'sanatanupmanyu',
+            'password': 'ksDq2jazKmxxzv.VxXbkwR6Uxz',
             'port': 5432
         }
     
@@ -73,28 +74,28 @@ class SafetyDBOperations:
             logger.error(f"Error storing company: {e}")
             return None
     
-    def store_regulatory_event(self, url, headline, date_published=None, 
-                              category=None, event_type='Alert'):
+    def store_regulatory_event(self, url, alert_name, alert_date=None, 
+                              event_type='Alert', product_name=None):
         """Store a regulatory event in safetydb.regulatory_events"""
         try:
             with self.get_connection() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
                         INSERT INTO safetydb.regulatory_events (
-                            url, headline, date_published, category, event_type
+                            url, alert_name, alert_date, event_type, product_name
                         )
                         VALUES (%s, %s, %s, %s, %s)
                         ON CONFLICT (url) DO UPDATE SET
-                            headline = EXCLUDED.headline,
-                            date_published = EXCLUDED.date_published,
-                            category = EXCLUDED.category,
-                            event_type = EXCLUDED.event_type
-                        RETURNING id, headline
-                    """, (url, headline, date_published, category, event_type))
+                            alert_name = EXCLUDED.alert_name,
+                            alert_date = EXCLUDED.alert_date,
+                            event_type = EXCLUDED.event_type,
+                            product_name = EXCLUDED.product_name
+                        RETURNING id, alert_name
+                    """, (url, alert_name, alert_date, event_type, product_name))
                     
                     result = cursor.fetchone()
                     conn.commit()
-                    print(f"✅ Stored regulatory event: {result['headline']}")
+                    print(f"✅ Stored regulatory event: {result['alert_name']}")
                     return result['id']
         except Exception as e:
             logger.error(f"Error storing regulatory event: {e}")
@@ -137,10 +138,10 @@ class SafetyDBOperations:
             with self.get_connection() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
-                        SELECT id, url, headline, date_published, category, 
+                        SELECT id, url, alert_name, alert_date, product_name, 
                                event_type, created_at
                         FROM safetydb.regulatory_events
-                        ORDER BY date_published DESC, created_at DESC
+                        ORDER BY alert_date DESC, created_at DESC
                     """)
                     return cursor.fetchall()
         except Exception as e:
@@ -187,7 +188,7 @@ def demo_operations():
         'Product Recall: Contaminated Medicine Batch',
         date.today(),
         'Product Recall',
-        'Product Recall'
+        'Contaminated Medicine XYZ'
     )
     
     event2_id = db.store_regulatory_event(
@@ -195,7 +196,7 @@ def demo_operations():
         'New Safety Guidelines for Pharmaceutical Companies',
         date.today(),
         'Public Notice',
-        'Public Notice'
+        None
     )
     
     # Fetch and display data
@@ -217,7 +218,7 @@ def demo_operations():
     events = db.fetch_all_regulatory_events()
     print(f"\n📋 Regulatory Events ({len(events)}):")
     for event in events:
-        print(f"  - {event['headline']} ({event['event_type']})")
+        print(f"  - {event['alert_name']} ({event['event_type']})")
     
     # Summary
     summary = db.get_summary()

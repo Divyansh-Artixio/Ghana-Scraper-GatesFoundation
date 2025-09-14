@@ -12,9 +12,9 @@ def query_regulatory_events_with_company_names():
     # Database connection
     db_config = {
         'host': 'localhost',
-        'database': 'African_Country',
-        'user': 'divyanshsingh',
-        'password': 'password'
+        'database': 'safetyiq',
+        'user': 'sanatanupmanyu',
+        'password': 'ksDq2jazKmxxzv.VxXbkwR6Uxz'
     }
     
     try:

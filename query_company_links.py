@@ -11,8 +11,9 @@ def query_company_product_links():
     
     db_config = {
         'host': 'localhost',
-        'database': 'African_Country',
-        'user': 'divyanshsingh',
+        'database': 'safetyiq',
+        'user': 'sanatanupmanyu',
+        'password': 'ksDq2jazKmxxzv.VxXbkwR6Uxz',
         'port': 5432
     }
     
@@ -133,8 +134,9 @@ def export_company_links_csv():
     
     db_config = {
         'host': 'localhost',
-        'database': 'African_Country',
-        'user': 'divyanshsingh',
+        'database': 'safetyiq',
+        'user': 'sanatanupmanyu',
+        'password': 'ksDq2jazKmxxzv.VxXbkwR6Uxz',
         'port': 5432
     }
     

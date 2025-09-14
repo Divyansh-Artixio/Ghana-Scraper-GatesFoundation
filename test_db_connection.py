@@ -17,8 +17,9 @@ def test_db_connection():
     # Database configuration (same as in your scraper)
     db_config = {
         'host': 'localhost',
-        'database': 'African_Country',
-        'user': 'divyanshsingh',
+        'database': 'safetyiq',
+        'user': 'sanatanupmanyu',
+        'password': 'ksDq2jazKmxxzv.VxXbkwR6Uxz',
         'port': 5432
     }
     

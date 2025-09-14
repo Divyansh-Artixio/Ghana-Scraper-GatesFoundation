@@ -16,8 +16,9 @@ def drop_all_tables():
     
     db_config = {
         'host': 'localhost',
-        'database': 'African_Country',
-        'user': 'divyanshsingh',
+        'database': 'safetyiq',
+        'user': 'sanatanupmanyu',
+        'password': 'ksDq2jazKmxxzv.VxXbkwR6Uxz',
         'port': 5432
     }
     
