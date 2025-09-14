@@ -15,7 +15,7 @@ CREATE TABLE companies (
     founding_date DATE,
     promoter_founder_name VARCHAR(200),
     company_brief TEXT,
-    type VARCHAR(50) CHECK (type IN ('Manufacturer','Reselling Firm')),
+    type VARCHAR(50) CHECK (type IN ('Manufacturer','Recalling Firm')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -164,7 +164,13 @@ class GhanaRegulatoryScraperUnified:
         """Ensure 'GH' (Ghana) exists in safetydb.countries table."""
         cursor.execute("SELECT code FROM safetydb.countries WHERE code = %s", ('GH',))
         if not cursor.fetchone():
-            cursor.execute("INSERT INTO safetydb.countries (code, name, regulatory_maturity) VALUES (%s, %s, %s)", ('GH', 'Ghana', 'intermediate'))
+            # Check if Ghana exists with different code and update it
+            cursor.execute("SELECT code FROM safetydb.countries WHERE name = %s", ('Ghana',))
+            existing = cursor.fetchone()
+            if existing:
+                cursor.execute("UPDATE safetydb.countries SET code = %s WHERE name = %s", ('GH', 'Ghana'))
+            else:
+                cursor.execute("INSERT INTO safetydb.countries (code, name, regulatory_maturity) VALUES (%s, %s, %s)", ('GH', 'Ghana', 'intermediate'))
 
     def _get_or_create_company(self, cursor, name, country_code, company_type):
         """Get company ID by name, or create if not exists. Prevents duplicates by name."""
@@ -173,7 +179,7 @@ class GhanaRegulatoryScraperUnified:
         name = name.strip()
         try:
             # First check if company exists by name only (to prevent duplicates)
-            cursor.execute("SELECT id, company_size FROM safetydb.companies WHERE name = %s", (name,))
+            cursor.execute("SELECT id FROM safetydb.companies WHERE name = %s", (name,))
             result = cursor.fetchone()
             if result:
                 existing_id = result['id'] if isinstance(result, dict) else result[0]
@@ -184,13 +190,12 @@ class GhanaRegulatoryScraperUnified:
                 "INSERT INTO safetydb.companies (name, country_of_origin, company_size) VALUES (%s, %s, %s) RETURNING id",
                 (name, country_code, 'medium')
             )
-            cursor.connection.commit()
             new_id = cursor.fetchone()
             return new_id['id'] if isinstance(new_id, dict) else new_id[0]
         except Exception as e:
-            logger.error(f"❌ Error inserting company: {name}, {company_type}, {country_code} | {e}")
-            cursor.connection.rollback()
-            raise
+            logger.error(f"❌ Error with company: {name}, {company_type}, {country_code} | {e}")
+            # Don't rollback here as it might affect other operations
+            return None
     def get_db_connection(self):
         """Get database connection using class db_config"""
         return psycopg2.connect(**self.db_config, cursor_factory=RealDictCursor)
